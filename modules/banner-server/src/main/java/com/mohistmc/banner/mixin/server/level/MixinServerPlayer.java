@@ -893,33 +893,6 @@ public abstract class MixinServerPlayer extends Player implements InjectionServe
         return changeDimension(worldserver);
     }
 
-    @Inject(method = "teleportTo(Lnet/minecraft/server/level/ServerLevel;DDDLjava/util/Set;FF)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;teleport(DDDFFLjava/util/Set;)V"))
-    private void banner$forwardReason(ServerLevel level, double x, double y, double z, Set<RelativeMovement> relativeMovements, float yRot, float xRot, CallbackInfoReturnable<Boolean> cir) {
-        this.connection.pushTeleportCause(banner$changeDimensionCause.getAndSet(PlayerTeleportEvent.TeleportCause.UNKNOWN));
-    }
-
-    @Inject(method = "teleportTo(Lnet/minecraft/server/level/ServerLevel;DDDFF)V", cancellable = true, at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/server/level/ServerPlayer;stopRiding()V"))
-    private void banner$handleBy(ServerLevel world, double x, double y, double z, float yaw, float pitch, CallbackInfo ci) {
-        if (banner$changeDimensionCause.get() != PlayerTeleportEvent.TeleportCause.UNKNOWN) {
-            this.getBukkitEntity().teleport(new Location(world.getWorld(), x, y, z, yaw, pitch), banner$changeDimensionCause.getAndSet(PlayerTeleportEvent.TeleportCause.UNKNOWN));
-            ci.cancel();
-        }
-
-    }
-
-    @Inject(method = "teleportTo(Lnet/minecraft/server/level/ServerLevel;DDDFF)V", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/server/players/PlayerList;sendAllPlayerInfo(Lnet/minecraft/server/level/ServerPlayer;)V"))
-    private void banner$tp(ServerLevel world, double x, double y, double z, float yaw, float pitch, CallbackInfo ci) {
-        this.onUpdateAbilities();
-        for (MobEffectInstance mobEffect : this.getActiveEffects()) {
-            this.connection.send(new ClientboundUpdateMobEffectPacket(this.getId(), mobEffect));
-        }
-
-        // Don't fire on respawn
-        PlayerChangedWorldEvent event = new PlayerChangedWorldEvent(this.getBukkitEntity(), world.getWorld());
-        Bukkit.getPluginManager().callEvent(event);
-
-    }
-
     @Override
     public void teleportTo(ServerLevel worldserver, double d0, double d1, double d2, float f, float f1, PlayerTeleportEvent.TeleportCause cause) {
         pushChangeDimensionCause(cause);
@@ -930,13 +903,6 @@ public abstract class MixinServerPlayer extends Player implements InjectionServe
     public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> pRelativeMovements, float f, float f1, PlayerTeleportEvent.TeleportCause cause) {
         pushChangeDimensionCause(cause);
         return teleportTo(worldserver, d0, d1, d2, pRelativeMovements, f, f1);
-    }
-
-    @Inject(method = "stopSleepInBed",
-            at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;teleport(DDDFF)V"))
-    private void banner$tpCauseExitBed(boolean wakeImmediately, boolean updateLevelForSleepingPlayers, CallbackInfo ci) {
-        this.connection.pushTeleportCause(PlayerTeleportEvent.TeleportCause.EXIT_BED);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.mohistmc.banner.mixin.world.level.block;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.DragonEggBlock;
@@ -17,10 +18,10 @@ public class MixinDragonEggBlock {
 
     @Inject(method = "teleport",
             at = @At(value = "FIELD",
-            target = "Lnet/minecraft/world/level/Level;isClientSide:Z"),
-            locals = LocalCapture.CAPTURE_FAILHARD)
+                    target = "Lnet/minecraft/world/level/Level;isClientSide:Z")
+    )
     private void banner$tpEvent(BlockState state, Level level, BlockPos pos, CallbackInfo ci,
-                                WorldBorder worldBorder, int i, BlockPos blockPos) {
+                                @Local(ordinal = 1) BlockPos blockPos) {
         // CraftBukkit start
         org.bukkit.block.Block from = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
         org.bukkit.block.Block to = level.getWorld().getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ());

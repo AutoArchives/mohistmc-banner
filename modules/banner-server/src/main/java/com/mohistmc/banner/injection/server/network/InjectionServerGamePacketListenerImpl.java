@@ -18,19 +18,6 @@ public interface InjectionServerGamePacketListenerImpl {
     default void disconnect(String s) {
     }
 
-    default void teleport(double d0, double d1, double d2, float f, float f1, PlayerTeleportEvent.TeleportCause cause) {
-    }
-
-    default boolean teleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set, PlayerTeleportEvent.TeleportCause cause) { // CraftBukkit - Return event status
-        return false;
-    }
-
-    default void teleport(Location dest) {
-    }
-
-    default void internalTeleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set) {
-    }
-
     default void chat(String s, PlayerChatMessage original, boolean async) {
     }
 
@@ -58,10 +45,6 @@ public interface InjectionServerGamePacketListenerImpl {
 
     default Logger bridge$logger() {
         return null;
-    }
-
-    default void pushTeleportCause(PlayerTeleportEvent.TeleportCause cause) {
-
     }
 
     default void detectRateSpam(String s) {

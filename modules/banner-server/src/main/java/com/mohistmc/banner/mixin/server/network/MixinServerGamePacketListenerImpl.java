@@ -234,6 +234,8 @@ public abstract class MixinServerGamePacketListenerImpl implements InjectionServ
 
     @Shadow public abstract ServerPlayer getPlayer();
 
+    @Shadow public abstract void teleport(double x, double y, double z, float yaw, float pitch, Set<RelativeMovement> relativeSet);
+
     @Unique
     private CraftServer cserver;
     @Unique
@@ -476,7 +478,6 @@ public abstract class MixinServerGamePacketListenerImpl implements InjectionServ
 
                         // If the event is cancelled we move the player back to their old location.
                         if (event.isCancelled()) {
-                            teleport(from);
                             return;
                         }
 
@@ -723,7 +724,7 @@ public abstract class MixinServerGamePacketListenerImpl implements InjectionServ
                                     this.player.jumpFromGround();
                                 } else {
                                     from = event.getFrom();
-                                    this.internalTeleport(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch(), Collections.emptySet());
+                                    this.teleport(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch(), Collections.emptySet());
                                     return;
                                 }
                                 // Paper end
@@ -791,7 +792,6 @@ public abstract class MixinServerGamePacketListenerImpl implements InjectionServ
 
                                         // If the event is cancelled we move the player back to their old location.
                                         if (event.isCancelled()) {
-                                            teleport(from);
                                             return;
                                         }
 
@@ -826,7 +826,7 @@ public abstract class MixinServerGamePacketListenerImpl implements InjectionServ
                                 this.lastGoodY = this.player.getY();
                                 this.lastGoodZ = this.player.getZ();
                             } else {
-                                this.internalTeleport(d3, d4, d5, f, f1, Collections.emptySet()); // CraftBukkit - SPIGOT-1807: Don't call teleport event, when the client thinks the player is falling, because the chunks are not loaded on the client yet.
+                                this.teleport(d3, d4, d5, f, f1, Collections.emptySet()); // CraftBukkit - SPIGOT-1807: Don't call teleport event, when the client thinks the player is falling, because the chunks are not loaded on the client yet.
                                 this.player.doCheckFallDamage(this.player.getX() - d3, this.player.getY() - d4, this.player.getZ() - d5, packetplayinflying.isOnGround());
                             }
                         }
@@ -1856,99 +1856,6 @@ public abstract class MixinServerGamePacketListenerImpl implements InjectionServ
         }
     }
 
-    @Unique
-    private transient PlayerTeleportEvent.TeleportCause banner$cause;
-
-
-    @Inject(method = "teleport(DDDFFLjava/util/Set;)V", at = @At("HEAD"), cancellable = true)
-    private void banner$bukkitLikeTp(double pX, double pY, double pZ, float pYaw, float pPitch, Set<RelativeMovement> set, CallbackInfo ci) {
-        this.teleport(pX, pY, pZ, pYaw, pPitch, PlayerTeleportEvent.TeleportCause.UNKNOWN);
-        ci.cancel();
-    }
-
-    @Override
-    public void teleport(double d0, double d1, double d2, float f, float f1, PlayerTeleportEvent.TeleportCause cause) {
-        this.teleport(d0, d1, d2, f, f1, Collections.emptySet(), cause);
-    }
-
-    @Override
-    public boolean teleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set, PlayerTeleportEvent.TeleportCause cause) {
-        cause = banner$cause == null ? PlayerTeleportEvent.TeleportCause.UNKNOWN : banner$cause;
-        banner$cause = null;
-        org.bukkit.entity.Player player = this.getCraftPlayer();
-        Location from = player.getLocation();
-
-        double x = d0;
-        double y = d1;
-        double z = d2;
-        float yaw = f;
-        float pitch = f1;
-
-        Location to = new Location(this.getCraftPlayer().getWorld(), x, y, z, yaw, pitch);
-        // SPIGOT-5171: Triggered on join
-        if (from.equals(to)) {
-            this.internalTeleport(d0, d1, d2, f, f1, set);
-            return false; // CraftBukkit - Return event status
-        }
-
-        PlayerTeleportEvent event = new PlayerTeleportEvent(player, from.clone(), to.clone(), cause);
-        this.cserver.getPluginManager().callEvent(event);
-
-        if (event.isCancelled() || !to.equals(event.getTo())) {
-            set = Collections.emptySet(); // Can't relative teleport
-            to = event.isCancelled() ? event.getFrom() : event.getTo();
-            d0 = to.getX();
-            d1 = to.getY();
-            d2 = to.getZ();
-            f = to.getYaw();
-            f1 = to.getPitch();
-        }
-
-        this.internalTeleport(d0, d1, d2, f, f1, set);
-        return event.isCancelled(); // CraftBukkit - Return event status
-    }
-
-    @Override
-    public void teleport(Location dest) {
-        this.internalTeleport(dest.getX(), dest.getY(), dest.getZ(), dest.getYaw(), dest.getPitch(), Collections.emptySet());
-    }
-
-    @Inject(method = "teleport(DDDFF)V", at = @At("HEAD"))
-    private void banner$tpBukkit(double d, double e, double f, float g, float h, CallbackInfo ci) {
-        pushTeleportCause(PlayerTeleportEvent.TeleportCause.UNKNOWN);
-    }
-
-    @Override
-    public void internalTeleport(double pX, double pY, double pZ, float pYaw, float pPitch, Set<RelativeMovement> pRelativeSet) {
-        // CraftBukkit start
-        if (Float.isNaN(pYaw)) {
-            pYaw = 0;
-        }
-        if (Float.isNaN(pPitch)) {
-            pPitch = 0;
-        }
-
-        this.justTeleported = true;
-        // CraftBukkit end
-        double d0 = pRelativeSet.contains(RelativeMovement.X) ? this.player.getX() : 0.0D;
-        double d1 = pRelativeSet.contains(RelativeMovement.Y) ? this.player.getY() : 0.0D;
-        double d2 = pRelativeSet.contains(RelativeMovement.Z) ? this.player.getZ() : 0.0D;
-        float f = pRelativeSet.contains(RelativeMovement.Y_ROT) ? this.player.getYRot() : 0.0F;
-        float f1 = pRelativeSet.contains(RelativeMovement.X_ROT) ? this.player.getXRot() : 0.0F;
-        this.awaitingPositionFromClient = new Vec3(pX, pY, pZ);
-        if (++this.awaitingTeleport == Integer.MAX_VALUE) {
-            this.awaitingTeleport = 0;
-        }
-        this.lastPosX = this.awaitingPositionFromClient.x;
-        this.lastPosY = this.awaitingPositionFromClient.y;
-        this.lastPosZ = this.awaitingPositionFromClient.z;
-        this.lastYaw = f;
-        this.lastPitch = f1;
-        this.awaitingTeleportTime = this.tickCount;
-        this.player.absMoveTo(pX, pY, pZ, pYaw, pPitch);
-        this.player.connection.send(new ClientboundPlayerPositionPacket(pX - d0, pY - d1, pZ - d2, pYaw - f, pPitch - f1, pRelativeSet, this.awaitingTeleport));
-    }
-
     @Override
     public boolean bridge$processedDisconnect() {
         return processedDisconnect;
@@ -1967,10 +1874,5 @@ public abstract class MixinServerGamePacketListenerImpl implements InjectionServ
     @Override
     public Logger bridge$logger() {
         return LOGGER;
-    }
-
-    @Override
-    public void pushTeleportCause(PlayerTeleportEvent.TeleportCause cause) {
-        banner$cause = cause;
     }
 }

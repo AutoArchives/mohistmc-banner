@@ -643,7 +643,7 @@ public abstract class MixinPlayerList implements InjectionPlayerList {
         entityplayer1.connection.send(new ClientboundSetSimulationDistancePacket(worldserver1.bridge$spigotConfig().simulationDistance));
         entityplayer1.spawnIn(worldserver1);
         entityplayer1.unsetRemoved();
-        entityplayer1.connection.teleport(CraftLocation.toBukkit(entityplayer1.position(), worldserver1.getWorld(), entityplayer1.getYRot(), entityplayer1.getXRot()));
+        entityplayer1.connection.teleport(entityplayer1.getX(), entityplayer1.getY(), entityplayer1.getZ(), entityplayer1.getYRot(), entityplayer1.getXRot());
         entityplayer1.setShiftKeyDown(false);
         entityplayer1.connection.send(new ClientboundSetDefaultSpawnPositionPacket(worldserver1.getSharedSpawnPos(), worldserver1.getSharedSpawnAngle()));
         entityplayer1.connection.send(new ClientboundChangeDifficultyPacket(worlddata.getDifficulty(), worlddata.isDifficultyLocked()));
