@@ -90,19 +90,6 @@ public abstract class MixinBoat extends Entity implements InjectionBoat {
         }
     }
 
-    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/vehicle/Boat;tickBubbleColumn()V"))
-    private void banner$updateVehicle(CallbackInfo ci) {
-        org.bukkit.World bworld = this.level().getWorld();
-        Location to = CraftLocation.toBukkit(this.position(), bworld, this.getYRot(), this.getXRot());
-        Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-        Bukkit.getPluginManager().callEvent(new VehicleUpdateEvent(vehicle));
-        if (this.lastLocation != null && !this.lastLocation.equals(to)) {
-            final VehicleMoveEvent event = new VehicleMoveEvent(vehicle, this.lastLocation, to);
-            Bukkit.getPluginManager().callEvent(event);
-        }
-        this.lastLocation = vehicle.getLocation();
-    }
-
     @Redirect(method = "checkFallDamage", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/vehicle/Boat;isRemoved()Z"))
     private boolean banner$breakVehicle(Boat boatEntity) {
         if (!boatEntity.isRemoved()) {

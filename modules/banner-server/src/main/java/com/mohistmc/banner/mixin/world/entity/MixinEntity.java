@@ -386,40 +386,6 @@ public abstract class MixinEntity implements Nameable, EntityAccess, CommandSour
         }
     }
 
-    @Inject(method = "setRot", at = @At(value = "HEAD"), cancellable = true)
-    public void banner$infCheck(float yaw, float pitch, CallbackInfo ci) {
-        // CraftBukkit start - yaw was sometimes set to NaN, so we need to set it back to 0
-        if (Float.isNaN(yaw)) {
-            this.yRot = 0;
-            ci.cancel();
-        }
-
-        if (yaw == Float.POSITIVE_INFINITY || yaw == Float.NEGATIVE_INFINITY) {
-            if (((Object) this) instanceof Player) {
-                this.level.getCraftServer().getLogger().warning(this.getScoreboardName() + " was caught trying to crash the server with an invalid yaw");
-                ((CraftPlayer) this.getBukkitEntity()).kickPlayer("Infinite yaw (Hacking?)");
-            }
-            this.yRot = 0;
-            ci.cancel();
-        }
-
-        // pitch was sometimes set to NaN, so we need to set it back to 0
-        if (Float.isNaN(pitch)) {
-            this.xRot = 0;
-            ci.cancel();
-        }
-
-        if (pitch == Float.POSITIVE_INFINITY || pitch == Float.NEGATIVE_INFINITY) {
-            if (((Object) this) instanceof Player) {
-                this.level.getCraftServer().getLogger().warning(this.getScoreboardName() + " was caught trying to crash the server with an invalid pitch");
-                ((CraftPlayer) this.getBukkitEntity()).kickPlayer("Infinite pitch (Hacking?)");
-            }
-            this.xRot = 0;
-            ci.cancel();
-        }
-        // CraftBukkit end
-    }
-
     @Redirect(method = "baseTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;handleNetherPortal()V"))
     public void banner$baseTick$moveToPostTick(Entity entity) {
         if (entity instanceof ServerPlayer) this.handleNetherPortal();// CraftBukkit - // Moved up to postTick
@@ -465,61 +431,6 @@ public abstract class MixinEntity implements Nameable, EntityAccess, CommandSour
         return instance.lava().bridge$directBlock(damager);
     }
 
-    @Shadow protected abstract Vec3 collide(Vec3 vec);
-    @Inject(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;onGround()Z"),
-            slice = @Slice(from = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;updateEntityAfterFallOn(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;)V")))
-    private void banner$move$blockCollide(MoverType type, Vec3 pos, CallbackInfo ci) {
-        // CraftBukkit start
-        if (horizontalCollision && getBukkitEntity() instanceof Vehicle) {
-            Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-            org.bukkit.block.Block cbBlock = this.level.getWorld().getBlockAt(Mth.floor(this.getX()), Mth.floor(this.getY()), Mth.floor(this.getZ()));
-            Vec3 vec3d = this.collide(pos);
-            if (pos.x > vec3d.x) {
-                cbBlock = cbBlock.getRelative(BlockFace.EAST);
-            } else if (pos.x < vec3d.x) {
-                cbBlock = cbBlock.getRelative(BlockFace.WEST);
-            } else if (pos.z > vec3d.z) {
-                cbBlock = cbBlock.getRelative(BlockFace.SOUTH);
-            } else if (pos.z < vec3d.z) {
-                cbBlock = cbBlock.getRelative(BlockFace.NORTH);
-            }
-
-            if (cbBlock.getType() != org.bukkit.Material.AIR) {
-                VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, cbBlock);
-                level.getCraftServer().getPluginManager().callEvent(event);
-            }
-        }
-        // CraftBukkit end
-    }
-
-    @Inject(method = "absMoveTo(DDD)V", at = @At("RETURN"))
-    private void banner$loadChunk(double x, double y, double z, CallbackInfo ci) {
-        if (this.valid) this.level().getChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
-    }
-
-    @Inject(method = "absMoveTo(DDDFF)V", at = @At("RETURN"))
-    private void banner$loadChunk0(double x, double y, double z, float yRot, float xRot, CallbackInfo ci) {
-        if (this.valid) this.level().getChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
-    }
-
-    @Inject(method = "saveAsPassenger", cancellable = true, at = @At(value = "INVOKE_ASSIGN", target = "Lnet/minecraft/world/entity/Entity;getEncodeId()Ljava/lang/String;"))
-    public void banner$writeUnlessRemoved$persistCheck(CompoundTag compound, CallbackInfoReturnable<Boolean> cir) {
-        if (!this.persist)
-            cir.setReturnValue(false);
-    }
-
-
-    @Inject(method = "saveWithoutId", at = @At(value = "INVOKE_ASSIGN", ordinal = 1, target = "Lnet/minecraft/nbt/CompoundTag;put(Ljava/lang/String;Lnet/minecraft/nbt/Tag;)Lnet/minecraft/nbt/Tag;"))
-    public void banner$writeWithoutTypeId$InfiniteValueCheck(CompoundTag compound, CallbackInfoReturnable<CompoundTag> cir) {
-        if (Float.isNaN(this.getYRot())) {
-            this.yRot = 0;
-        }
-
-        if (Float.isNaN(this.getXRot())) {
-            this.xRot = 0;
-        }
-    }
-
     @Inject(method = "saveWithoutId", at = @At(value = "INVOKE", shift = At.Shift.AFTER, ordinal = 0, target = "Lnet/minecraft/nbt/CompoundTag;putUUID(Ljava/lang/String;Ljava/util/UUID;)V"))
     public void banner$writeWithoutTypeId$CraftBukkitNBT(CompoundTag compound, CallbackInfoReturnable<CompoundTag> cir) {
         compound.putLong("WorldUUIDLeast", this.level.getWorld().getUID().getLeastSignificantBits());
@@ -540,80 +451,9 @@ public abstract class MixinEntity implements Nameable, EntityAccess, CommandSour
         }
     }
 
-    @Inject(method = "saveWithoutId", at = @At(value = "RETURN"))
-    public void banner$writeWithoutTypeId$StoreBukkitValues(CompoundTag compound, CallbackInfoReturnable<CompoundTag> cir) {
-        if (this.bukkitEntity != null) {
-            this.bukkitEntity.storeBukkitValues(compound);
-        }
-        // Paper start - Save the entity's origin location
-        if (this.origin != null) {
-            UUID originWorld = this.originWorld != null ? this.originWorld : this.level != null ? this.level.getWorld().getUID() : null;
-            if (originWorld != null) {
-                compound.putUUID("Paper.OriginWorld", originWorld);
-            }
-            compound.put("Paper.Origin", this.newDoubleList(origin.getX(), origin.getY(), origin.getZ()));
-        }
-        // Paper end
-    }
-
     @Unique
     private static boolean isLevelAtLeast(CompoundTag tag, int level) {
         return tag.contains("Bukkit.updateLevel") && tag.getInt("Bukkit.updateLevel") >= level;
-    }
-
-    @Inject(method = "load", at = @At(value = "RETURN"))
-    public void banner$read$ReadBukkitValues(CompoundTag compound, CallbackInfo ci) {
-        // CraftBukkit start
-        if ((Object) this instanceof LivingEntity entity) {
-            this.tickCount = compound.getInt("Spigot.ticksLived");
-        }
-        this.persist = !compound.contains("Bukkit.persist") || compound.getBoolean("Bukkit.persist");
-        this.visibleByDefault = !compound.contains("Bukkit.visibleByDefault") || compound.getBoolean("Bukkit.visibleByDefault");
-        // CraftBukkit end
-
-        // CraftBukkit start - Reset world
-        if ((Object) this instanceof ServerPlayer) {
-            Server server = Bukkit.getServer();
-            org.bukkit.World bworld = null;
-
-            String worldName = compound.getString("world");
-
-            if (compound.contains("WorldUUIDMost") && compound.contains("WorldUUIDLeast")) {
-                UUID uid = new UUID(compound.getLong("WorldUUIDMost"), compound.getLong("WorldUUIDLeast"));
-                bworld = server.getWorld(uid);
-            } else {
-                bworld = server.getWorld(worldName);
-            }
-
-            if (bworld == null) {
-                bworld = (((CraftServer) server).getServer().getLevel(Level.OVERWORLD)).getWorld();
-            }
-
-            ((ServerPlayer) (Object) this).setServerLevel(bworld == null ? null : ((CraftWorld) bworld).getHandle());
-        }
-        this.getBukkitEntity().readBukkitValues(compound);
-        if (compound.contains("Bukkit.invisible")) {
-            boolean bukkitInvisible = compound.getBoolean("Bukkit.invisible");
-            this.setInvisible(bukkitInvisible);
-            this.persistentInvisibility = bukkitInvisible;
-        }
-        if (compound.contains("Bukkit.MaxAirSupply")) {
-            maxAirTicks = compound.getInt("Bukkit.MaxAirSupply");
-        }
-        // CraftBukkit end
-        // Paper start - Restore the entity's origin location
-        ListTag originTag = compound.getList("Paper.Origin", 6);
-        if (!originTag.isEmpty()) {
-            UUID originWorld = null;
-            if (compound.contains("Paper.OriginWorld")) {
-                originWorld = compound.getUUID("Paper.OriginWorld");
-            } else if (this.level != null) {
-                originWorld = this.level.getWorld().getUID();
-            }
-            this.originWorld = originWorld;
-            origin = new org.bukkit.util.Vector(originTag.getDouble(0), originTag.getDouble(1), originTag.getDouble(2));
-        }
-        // Paper end
     }
 
     @Inject(method = "setInvisible", cancellable = true, at = @At("HEAD"))
@@ -697,30 +537,6 @@ public abstract class MixinEntity implements Nameable, EntityAccess, CommandSour
             return false;
         }
         return true;
-    }
-
-    @Unique
-    private AtomicReference<PositionImpl> banner$location = new AtomicReference<>();
-
-    @Nullable
-    @Override
-    public Entity teleportTo(ServerLevel worldserver, PositionImpl location) {
-        banner$location.set(location);
-        return changeDimension(worldserver);
-    }
-
-    @Override
-    public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
-        return this.teleportTo(worldserver, d0, d1, d2, set, f, f1);
-    }
-
-    @Inject(method = "restoreFrom", at = @At("HEAD"))
-    private void banner$forwardHandle(Entity entityIn, CallbackInfo ci) {
-        entityIn.getBukkitEntity().setHandle((Entity) (Object) this);
-        this.bukkitEntity = entityIn.getBukkitEntity();
-        if (entityIn instanceof Mob) {
-            ((Mob) entityIn).dropLeash(true, false);
-        }
     }
 
     @Inject(method = "setSharedFlag", at = @At("HEAD"),

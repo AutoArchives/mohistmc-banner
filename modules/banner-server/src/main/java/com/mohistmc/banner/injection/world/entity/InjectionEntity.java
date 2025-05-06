@@ -90,10 +90,6 @@ public interface InjectionEntity {
     default void banner$setLastLavaContact(BlockPos lastLavaContact) {
     }
 
-    default  boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
-        return false;
-    }
-
     default CraftEntity getBukkitEntity() {
         return null;
     }
@@ -133,10 +129,6 @@ public interface InjectionEntity {
     }
 
     default org.spigotmc.ActivationRange.ActivationType bridge$activationType() {
-        return null;
-    }
-
-    default Entity teleportTo(ServerLevel worldserver, PositionImpl location) {
         return null;
     }
 

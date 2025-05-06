@@ -894,18 +894,6 @@ public abstract class MixinServerPlayer extends Player implements InjectionServe
     }
 
     @Override
-    public void teleportTo(ServerLevel worldserver, double d0, double d1, double d2, float f, float f1, PlayerTeleportEvent.TeleportCause cause) {
-        pushChangeDimensionCause(cause);
-        teleportTo(worldserver, d0, d1, d2, f, f1);
-    }
-
-    @Override
-    public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> pRelativeMovements, float f, float f1, PlayerTeleportEvent.TeleportCause cause) {
-        pushChangeDimensionCause(cause);
-        return teleportTo(worldserver, d0, d1, d2, pRelativeMovements, f, f1);
-    }
-
-    @Override
     public void pushChangeDimensionCause(PlayerTeleportEvent.TeleportCause cause) {
         banner$changeDimensionCause.set(cause);
     }
